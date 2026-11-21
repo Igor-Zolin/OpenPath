@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../../shared/SingBoxProfileImporter.cs" Link="Shared/SingBoxProfileImporter.cs" />
+    <EmbeddedResource Include="..\..\dependencies.json" LogicalName="SshEnv.Dependencies.Manifest.json" />
+    <InternalsVisibleTo Include="SshEnv.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DependencyBundleDirectory)' != ''">
+    <EmbeddedResource Include="$(DependencyBundleDirectory)\*.zip" LogicalName="SshEnv.Dependencies.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(DependencyBundleDirectory)\*.txt" LogicalName="SshEnv.Dependencies.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <Target Name="RequireDependencyBundle" BeforeTargets="PrepareForBuild" Condition="'$(DependencyBundleDirectory)' != ''">
+    <Error Condition="!Exists('$(DependencyBundleDirectory)\wintun-0.14.1.zip')" Text="Dependency bundle is missing. Run publish-winui.ps1 to prepare it." />
+  </Target>
+
+</Project>

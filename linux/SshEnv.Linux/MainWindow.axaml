@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SshEnv.Linux.MainWindow"
+        Title="SshEnv for Linux" Width="620" Height="640" MinWidth="460" MinHeight="480">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
+    <TabControl x:Name="ConnectionTabs" SelectedIndex="0">
+      <TabItem Header="SSH SOCKS5">
+        <StackPanel Spacing="8" Margin="0,12,0,0">
+          <TextBox x:Name="SshHost" PlaceholderText="Server hostname or IP" />
+          <TextBox x:Name="SshUser" PlaceholderText="SSH username" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="SSH port" />
+              <TextBox x:Name="SshPort" Text="22" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Text="Local SOCKS5 port" />
+              <TextBox x:Name="SocksPort" Text="8000" />
+            </StackPanel>
+          </Grid>
+          <TextBox x:Name="IdentityFile" PlaceholderText="Private key path (optional)" />
+          <TextBlock Text="Uses OpenSSH keys or ssh-agent." TextWrapping="Wrap" />
+        </StackPanel>
+      </TabItem>
+      <TabItem Header="VLESS proxy">
+        <StackPanel Spacing="8" Margin="0,12,0,0">
+          <TextBox x:Name="VlessLink" PlaceholderText="VLESS key or HTTP(S) subscription URL" />
+          <Button x:Name="ImportButton" Content="Import" />
+          <ComboBox x:Name="Profiles" PlaceholderText="Select an imported profile" HorizontalAlignment="Stretch" />
+          <TextBlock Text="Set your app's HTTP or SOCKS5 proxy to 127.0.0.1:2080." TextWrapping="Wrap" />
+          <TextBlock x:Name="ImportStatus" TextWrapping="Wrap" />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+    <Button x:Name="ConnectionButton" Grid.Row="1" Content="Connect" />
+    <TextBlock x:Name="Status" Grid.Row="2" Text="Disconnected" TextWrapping="Wrap" />
+    <TextBox x:Name="Log" Grid.Row="3" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" />
+  </Grid>
+</Window>

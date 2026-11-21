@@ -1,0 +1,165 @@
+name: Release OpenPath for Windows
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  SIGN_WINDOWS: ${{ vars.WINDOWS_SIGNING_MODE != 'unsigned' }}
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-2025
+    environment: windows-signing
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        rid: [win-x64, win-arm64]
+    env:
+      RID: ${{ matrix.rid }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Read Windows version from tag
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_NAME -cnotmatch '^v((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))$') {
+            throw 'Expected a stable release tag such as v1.2.3.'
+          }
+          $version = $Matches[1]
+          if ($version.Split('.') | Where-Object { [long]$_ -gt 65534 }) {
+            throw 'Windows assembly version components must be at most 65534.'
+          }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test Windows core
+        if: matrix.rid == 'win-x64'
+        run: |
+          .\scripts\prepare-dependencies.ps1
+          dotnet run --project windows/tests/SshEnv.Core.Tests "-p:DependencyBundleDirectory=$PWD\dist\.dependencies-win-x64"
+
+      - name: Build portable application
+        run: .\publish-winui.ps1 -RuntimeIdentifier $env:RID -Version $env:RELEASE_VERSION
+
+      - name: Prepare Inno Setup 6.7.4
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.4.exe'
+          Invoke-WebRequest https://github.com/jrsoftware/issrc/releases/download/is-6_7_4/innosetup-6.7.4.exe -OutFile $setup
+          if ((Get-FileHash $setup).Hash -ne 'a549929319f9120716677c685535ca4671e4b937b5fdc87e2585f32d8eb30e8c') {
+            throw 'Inno Setup download failed integrity verification.'
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'Inno'
+          $process = Start-Process $setup -ArgumentList "/VERYSILENT /CURRENTUSER /NORESTART /SUPPRESSMSGBOXES /NOICONS /DIR=`"$dir`"" -WindowStyle Hidden -PassThru -Wait
+          if ($process.ExitCode) { throw "Inno Setup installation failed ($($process.ExitCode))." }
+          "ISCC=$dir\ISCC.exe" >> $env:GITHUB_ENV
+
+      - name: Authenticate signing identity
+        if: env.SIGN_WINDOWS == 'true'
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign portable application
+        if: env.SIGN_WINDOWS == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\dist\OpenPath-${{ matrix.rid }}.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Build installer from portable application
+        run: .\publish-installers.ps1 -RuntimeIdentifier $env:RID -Version $env:RELEASE_VERSION -InnoCompiler $env:ISCC -UseExistingPayload
+
+      - name: Sign installer
+        if: env.SIGN_WINDOWS == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\dist\OpenPath-${{ matrix.rid }}-Setup.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Verify Authenticode signatures and timestamps
+        if: env.SIGN_WINDOWS == 'true'
+        run: |
+          foreach ($file in "OpenPath-$env:RID.exe", "OpenPath-$env:RID-Setup.exe") {
+            $signature = Get-AuthenticodeSignature -LiteralPath "dist\$file"
+            if ($signature.Status -ne 'Valid' -or !$signature.TimeStamperCertificate) {
+              throw "Invalid or untimestamped signature on $file ($($signature.Status))."
+            }
+          }
+
+      - name: Check installed x64 payload
+        if: matrix.rid == 'win-x64'
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'OpenPath smoke'
+          $setup = Start-Process ".\dist\OpenPath-$env:RID-Setup.exe" -ArgumentList "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /DIR=`"$target`"" -WindowStyle Hidden -Wait -PassThru
+          if ($setup.ExitCode) { throw "Installer exited with code $($setup.ExitCode)." }
+          $name = "OpenPath-$env:RID.exe"
+          $installed = Join-Path $target $name
+          if ((Get-FileHash $installed).Hash -ne (Get-FileHash ".\dist\$name").Hash) {
+            throw 'The installed executable differs from the portable executable.'
+          }
+          $env:SSH_ENV_ASKPASS_MODE = '1'
+          $env:SSH_ENV_PASSWORD = 'openpath-smoke'
+          $answer = & $installed | Out-String
+          if ($LASTEXITCODE -ne 0 -or $answer.Trim() -ne 'openpath-smoke') { throw 'Installed executable failed to start.' }
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: OpenPath-${{ matrix.rid }}
+          path: |
+            dist/OpenPath-${{ matrix.rid }}.exe
+            dist/OpenPath-${{ matrix.rid }}-Setup.exe
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: OpenPath-win-*
+          merge-multiple: true
+          path: release
+
+      - name: Publish release and SHA-256 checksums
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=(OpenPath-win-{x64,arm64}{,-Setup}.exe)
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+          notes=()
+          if [[ "$SIGN_WINDOWS" == false ]]; then
+            notes+=(--notes "This Windows build is unsigned. Windows may display an unknown publisher warning.")
+          fi
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "OpenPath ${GITHUB_REF_NAME#v}" --generate-notes "${notes[@]}" "${files[@]}" SHA256SUMS.txt

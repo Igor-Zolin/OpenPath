@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Product>OpenPath</Product>
+    <AssemblyTitle>OpenPath</AssemblyTitle>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == 'AnyCPU'">x64</Platform>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <RootNamespace>SshEnv.WinUI</RootNamespace>
+    <AssemblyName Condition="'$(PublishSingleFile)' == 'true'">OpenPath-$(RuntimeIdentifier)</AssemblyName>
+    <!-- Keep the WinUI resource index discoverable after the standalone EXE is renamed. -->
+    <ProjectPriFileName Condition="'$(PublishSingleFile)' == 'true'">resources.pri</ProjectPriFileName>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+    <ProjectReference Include="..\SshEnv.Core\SshEnv.Core.csproj" />
+  </ItemGroup>
+</Project>

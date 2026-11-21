@@ -1,0 +1,56 @@
+[
+  {
+    "id": "tun2socks", "architecture": "X64", "binary": "tun2socks.exe",
+    "archiveEntry": "tun2socks-windows-amd64.exe",
+    "url": "https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-amd64.zip",
+    "sha256": "1429e2e3b1ea09052da2c65e5005538b5730d63da37e304f4ad6fd2698a66695"
+  },
+  {
+    "id": "tun2socks", "architecture": "Arm64", "binary": "tun2socks.exe",
+    "archiveEntry": "tun2socks-windows-arm64.exe",
+    "url": "https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-arm64.zip",
+    "sha256": "e7c71f89991f9b850817e6b441e568c370292f8aea4fa9bdf70d099da7991eca"
+  },
+  {
+    "id": "tun2socks", "architecture": "X86", "binary": "tun2socks.exe",
+    "archiveEntry": "tun2socks-windows-386.exe",
+    "url": "https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-windows-386.zip",
+    "sha256": "441dfc610d0beb53e83c19a8064c4cd38b9d9546e2da9b7b9cf97df4a2210462"
+  },
+  {
+    "id": "wintun", "architecture": "X64", "binary": "wintun.dll",
+    "archiveEntry": "wintun/bin/amd64/wintun.dll",
+    "url": "https://www.wintun.net/builds/wintun-0.14.1.zip",
+    "sha256": "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"
+  },
+  {
+    "id": "wintun", "architecture": "Arm64", "binary": "wintun.dll",
+    "archiveEntry": "wintun/bin/arm64/wintun.dll",
+    "url": "https://www.wintun.net/builds/wintun-0.14.1.zip",
+    "sha256": "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"
+  },
+  {
+    "id": "wintun", "architecture": "X86", "binary": "wintun.dll",
+    "archiveEntry": "wintun/bin/x86/wintun.dll",
+    "url": "https://www.wintun.net/builds/wintun-0.14.1.zip",
+    "sha256": "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"
+  },
+  {
+    "id": "sing-box", "architecture": "X64", "binary": "sing-box.exe",
+    "archiveEntry": "sing-box-1.13.12-windows-amd64/sing-box.exe",
+    "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.12/sing-box-1.13.12-windows-amd64.zip",
+    "sha256": "e93fc531134eb1beb4efa3c74990a24e48456098a31c03b60d5ddf17f223cf98"
+  },
+  {
+    "id": "sing-box", "architecture": "Arm64", "binary": "sing-box.exe",
+    "archiveEntry": "sing-box-1.13.12-windows-arm64/sing-box.exe",
+    "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.12/sing-box-1.13.12-windows-arm64.zip",
+    "sha256": "e01560b07061fa79e67cb7dc8727ac5e3010fa9f93444ddaf0c014967f52a1b4"
+  },
+  {
+    "id": "sing-box", "architecture": "X86", "binary": "sing-box.exe",
+    "archiveEntry": "sing-box-1.13.12-windows-386/sing-box.exe",
+    "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.12/sing-box-1.13.12-windows-386.zip",
+    "sha256": "6e0a6e835c2f9b966475de8a7113acf0d81b626102a3f9528ef38cd2a793455b"
+  }
+]
