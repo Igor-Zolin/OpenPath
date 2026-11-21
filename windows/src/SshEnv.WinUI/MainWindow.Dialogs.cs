@@ -517,6 +517,14 @@ public sealed partial class MainWindow
     {
         var form = new StackPanel { Spacing = 12 };
         var feedback = CreateDialogFeedback();
+        var switches = new Dictionary<string, ToggleSwitch>();
+        foreach (var id in SingBoxConfigDirectRules.PresetIds)
+        {
+            var toggle = new ToggleSwitch { Header = L($"ExclusionPreset_{id}") };
+            switches.Add(id, toggle);
+            form.Children.Add(toggle);
+        }
+
         form.Children.Add(new TextBlock { Text = L("ExclusionHelp"), TextWrapping = TextWrapping.Wrap });
         var network = AddDialogTextBox(form, L("NetworkRules"));
         network.AcceptsReturn = true;
@@ -529,14 +537,20 @@ public sealed partial class MainWindow
 
         void SetEditors(IEnumerable<SingBoxDirectRule> rules)
         {
+            foreach (var (id, toggle) in switches)
+            {
+                toggle.IsOn = rules.Contains(new SingBoxDirectRule("preset", id));
+            }
             network.Text = string.Join(Environment.NewLine, rules
-                .Where(rule => rule.Type != "process_name")
+                .Where(rule => rule.Type is not ("process_name" or "preset"))
                 .Select(SingBoxConfigDirectRules.Format));
             processes.Text = SingBoxConfigDirectRules.FormatProcessNames(rules);
         }
 
         IReadOnlyList<SingBoxDirectRule> ReadEditors() => SingBoxConfigDirectRules.Normalize(
-            SingBoxConfigDirectRules.Parse(network.Text).Concat(SingBoxConfigDirectRules.ParseProcessNames(processes.Text)));
+            SingBoxConfigDirectRules.Parse(network.Text)
+                .Concat(SingBoxConfigDirectRules.ParseProcessNames(processes.Text))
+                .Concat(switches.Where(pair => pair.Value.IsOn).Select(pair => new SingBoxDirectRule("preset", pair.Key))));
 
         SetEditors(profiles.DirectRules);
         form.Children.Add(CreateDialogAction(L("BrowseExe"), feedback, async () =>

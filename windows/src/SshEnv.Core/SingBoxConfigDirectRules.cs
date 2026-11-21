@@ -12,7 +12,7 @@ public sealed record SingBoxDirectRule(string Type, string Value);
 /// Parses, persists, imports and applies portable sing-box TUN exclusion rules.
 /// The source sing-box configuration is never modified.
 /// </summary>
-public static class SingBoxConfigDirectRules
+public static partial class SingBoxConfigDirectRules
 {
     private const int ExportVersion = 1;
     private const string ExportFormat = "ssh-env-exclusions";
@@ -104,7 +104,7 @@ public static class SingBoxConfigDirectRules
             }
         }
 
-        if (result.Count > 200)
+        if (result.Count(rule => rule.Type != "preset") > 200)
         {
             throw new ArgumentException("Enter no more than 200 direct exclusion rules.");
         }
@@ -201,6 +201,7 @@ public static class SingBoxConfigDirectRules
         var routeRules = GetOrCreateArray(route, "rules");
         if (rules.Count > 0)
         {
+            rules = ExpandPresets(route, rules);
             EnsureTunRouteExclusions(config, rules);
             ApplyTunOptions(config, rules);
             AddMissingDirectRouteRules(routeRules, rules);
@@ -303,6 +304,7 @@ public static class SingBoxConfigDirectRules
             var value = token[(separator + 1)..].Trim();
             return type switch
             {
+                "preset" => new SingBoxDirectRule("preset", value),
                 "host" or "domain" => new SingBoxDirectRule("domain", value),
                 "suffix" or "domain_suffix" => new SingBoxDirectRule("domain_suffix", value),
                 "keyword" or "domain_keyword" => new SingBoxDirectRule("domain_keyword", value),
@@ -410,6 +412,7 @@ public static class SingBoxConfigDirectRules
         var value = rule.Value?.Trim() ?? string.Empty;
         return type switch
         {
+            "preset" when PresetIds.Contains(value) => new SingBoxDirectRule(type, value),
             "domain" => new SingBoxDirectRule(type, NormalizeDomain(value)),
             "domain_suffix" => new SingBoxDirectRule(type, NormalizeDomain(value.TrimStart('*', '.'))),
             "domain_keyword" => new SingBoxDirectRule(type, NormalizeKeyword(value)),
@@ -735,7 +738,7 @@ public static class SingBoxConfigDirectRules
 
         foreach (var rule in rules.Where(rule => !existingRules.Any(existing => SameRule(existing, rule))))
         {
-            if (!RouteRuleTypes.Contains(rule.Type, StringComparer.Ordinal))
+            if (!IsPresetRuleSet(rule) && !RouteRuleTypes.Contains(rule.Type, StringComparer.Ordinal))
             {
                 continue;
             }
@@ -799,7 +802,7 @@ public static class SingBoxConfigDirectRules
 
     private static JsonObject CreateRouteRule(SingBoxDirectRule rule, string targetProperty, string targetValue)
     {
-        var normalized = NormalizeRule(rule);
+        var normalized = IsPresetRuleSet(rule) ? new SingBoxDirectRule("rule_set", rule.Value) : NormalizeRule(rule);
         var result = new JsonObject
         {
             ["action"] = "route",
@@ -818,7 +821,7 @@ public static class SingBoxConfigDirectRules
 
     private static bool IsLocalDnsRule(SingBoxDirectRule rule)
     {
-        return IsDomainRule(rule) || string.Equals(rule.Type, "process_name", StringComparison.Ordinal);
+        return rule.Type == "domain_rule_set" || IsDomainRule(rule) || string.Equals(rule.Type, "process_name", StringComparison.Ordinal);
     }
 
     private static bool IsPreparationRule(JsonNode? node)

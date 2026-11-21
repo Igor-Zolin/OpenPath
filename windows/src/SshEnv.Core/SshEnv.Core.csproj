@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="../../../shared/SingBoxProfileImporter.cs" Link="Shared/SingBoxProfileImporter.cs" />
     <EmbeddedResource Include="..\..\dependencies.json" LogicalName="SshEnv.Dependencies.Manifest.json" />
+    <EmbeddedResource Include="ExclusionData/*.json" LogicalName="SshEnv.ExclusionData.%(Filename).json" />
     <InternalsVisibleTo Include="SshEnv.Core.Tests" />
   </ItemGroup>
 

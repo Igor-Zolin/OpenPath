@@ -46,6 +46,8 @@ try
     await RunVersionAsync(Path.Combine(installer.ToolsDirectory, "sing-box.exe"), "version");
     await RunVersionAsync(Path.Combine(installer.ToolsDirectory, "tun2socks.exe"), "-version");
     FragmentationTests.Run(root);
+    await ExclusionPresetTests.RunAsync(root, path =>
+        RunVersionAsync(Path.Combine(installer.ToolsDirectory, "sing-box.exe"), $"check -c \"{path}\""));
 
     File.WriteAllBytes(Path.Combine(installer.ToolsDirectory, "sing-box.exe"), []);
     Assert(!installer.Check().HasSingBox, "Empty EXE was considered installed.");
