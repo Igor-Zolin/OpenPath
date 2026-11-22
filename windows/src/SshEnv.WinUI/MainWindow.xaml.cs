@@ -50,6 +50,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ElevationNotice.IsOpen = !Administrator;
         try
         {
             profiles = store.Load();
@@ -153,6 +154,7 @@ public sealed partial class MainWindow : Window
         InstallDependenciesButton.Click += async (_, _) => await RunActionAsync(InstallDependenciesAsync);
         RemoveDependenciesButton.Click += async (_, _) => await RunActionAsync(RemoveDependenciesAsync);
         RepairWintunButton.Click += async (_, _) => await RunActionAsync(RepairWintunAsync);
+        ElevationRestartButton.Click += async (_, _) => await RunActionAsync(RestartAsAdminAsync);
         RestartAsAdminButton.Click += async (_, _) => await RunActionAsync(RestartAsAdminAsync);
 
         CheckUpdatesButton.Click += async (_, _) => await CheckForUpdatesAsync();
@@ -448,6 +450,7 @@ public sealed partial class MainWindow : Window
         RemoveDependenciesButton.IsEnabled = editable && !pinging;
         RepairWintunButton.IsEnabled = editable && Administrator;
         RestartAsAdminButton.IsEnabled = editable && !Administrator;
+        ElevationRestartButton.IsEnabled = RestartAsAdminButton.IsEnabled;
         CheckSshButton.IsEnabled = available;
         PingButton.IsEnabled = ActiveName is not null && !pinging && !busy && !closing;
         PingAllButton.IsEnabled = profileRows.Length != 0 && !pinging && !busy && !closing;

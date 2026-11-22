@@ -79,6 +79,7 @@ public sealed partial class MainWindow
             ["MissingVlessProfile"] = ("Select a VLESS profile first.", "Сначала выберите профиль VLESS."),
             ["MissingTunConfig"] = ("Choose a TUN configuration file for this profile.", "Выберите файл конфигурации TUN для этого профиля."),
             ["MissingProxyConfig"] = ("Choose a system proxy configuration file for this profile.", "Выберите файл конфигурации системного прокси для этого профиля."),
+            ["RunningWithoutElevation"] = ("OpenPath is running without administrator privileges.", "OpenPath запущен без прав администратора."),
             ["ElevationRequired"] = ("Restart OpenPath as administrator to use this feature.", "Для этой функции перезапустите OpenPath от имени администратора."),
             ["TunnelEnded"] = ("The tunnel ended with exit code {0}.", "Туннель завершился с кодом {0}."),
             ["SingBoxUnavailable"] = ("Install sing-box from Settings or choose an executable for this profile.", "Установите sing-box в настройках или укажите исполняемый файл в профиле."),
@@ -148,6 +149,8 @@ public sealed partial class MainWindow
         RemoveDependenciesButton.Content = L("RemoveDependencies");
         RepairWintunButton.Content = L("RepairWintun");
         RestartAsAdminButton.Content = L("RestartAsAdmin");
+        ElevationRestartButton.Content = L("RestartAsAdmin");
+        ElevationNotice.Message = L("RunningWithoutElevation");
 
         AutomationProperties.SetName(ConnectionSwitch, L("Connection"));
     }

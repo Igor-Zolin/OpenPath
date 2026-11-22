@@ -517,53 +517,51 @@ public sealed partial class MainWindow
     {
         var form = new StackPanel { Spacing = 12 };
         var feedback = CreateDialogFeedback();
+        var tabs = new Pivot();
+        form.Children.Add(tabs);
+        StackPanel AddTab(string label)
+        {
+            var panel = new StackPanel { Spacing = 10 };
+            tabs.Items.Add(new PivotItem { Header = L(label), Content = panel });
+            return panel;
+        }
+
+        var presets = AddTab("Presets");
         var switches = new Dictionary<string, ToggleSwitch>();
         foreach (var id in SingBoxConfigDirectRules.PresetIds)
         {
             var toggle = new ToggleSwitch { Header = L($"ExclusionPreset_{id}") };
             switches.Add(id, toggle);
-            form.Children.Add(toggle);
+            presets.Children.Add(toggle);
+            presets.Children.Add(CreatePresetPreview(id, feedback));
         }
 
-        form.Children.Add(new TextBlock { Text = L("ExclusionHelp"), TextWrapping = TextWrapping.Wrap });
-        var network = AddDialogTextBox(form, L("NetworkRules"));
-        network.AcceptsReturn = true;
-        network.TextWrapping = TextWrapping.Wrap;
-        network.Height = 112;
-        form.Children.Add(new TextBlock { Text = L("ApplicationsHelp"), TextWrapping = TextWrapping.Wrap });
-        var processes = AddDialogTextBox(form, L("Applications"));
-        processes.AcceptsReturn = true;
-        processes.Height = 92;
+        var networkPanel = AddTab("Addresses");
+        var appsPanel = AddTab("Applications");
+        var network = new RuleListEditor(networkPanel, feedback, applications: false);
+        var processes = new RuleListEditor(appsPanel, feedback, applications: true);
 
         void SetEditors(IEnumerable<SingBoxDirectRule> rules)
         {
             foreach (var (id, toggle) in switches)
-            {
                 toggle.IsOn = rules.Contains(new SingBoxDirectRule("preset", id));
-            }
-            network.Text = string.Join(Environment.NewLine, rules
-                .Where(rule => rule.Type is not ("process_name" or "preset"))
-                .Select(SingBoxConfigDirectRules.Format));
-            processes.Text = SingBoxConfigDirectRules.FormatProcessNames(rules);
+
+            network.Replace(rules.Where(rule => rule.Type is not ("process_name" or "preset")));
+            processes.Replace(rules.Where(rule => rule.Type == "process_name"));
         }
 
         IReadOnlyList<SingBoxDirectRule> ReadEditors() => SingBoxConfigDirectRules.Normalize(
-            SingBoxConfigDirectRules.Parse(network.Text)
-                .Concat(SingBoxConfigDirectRules.ParseProcessNames(processes.Text))
+            network.Read().Concat(processes.Read())
                 .Concat(switches.Where(pair => pair.Value.IsOn).Select(pair => new SingBoxDirectRule("preset", pair.Key))));
 
         SetEditors(profiles.DirectRules);
-        form.Children.Add(CreateDialogAction(L("BrowseExe"), feedback, async () =>
+        appsPanel.Children.Add(CreateDialogAction(L("BrowseExe"), feedback, async () =>
         {
             var picker = new FileOpenPicker(AppWindow.Id);
             picker.FileTypeFilter.Add(".exe");
             var files = await picker.PickMultipleFilesAsync();
-            if (files.Count != 0)
-            {
-                AppendProcessNames(processes, files.Select(file => Path.GetFileName(file.Path)));
-            }
+            processes.AddApplications(files.Select(file => Path.GetFileName(file.Path)));
         }));
-        form.Children.Add(CreateApplicationCatalog(processes, feedback));
 
         var fileActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         fileActions.Children.Add(CreateDialogAction(L("ImportExclusions"), feedback, async () =>
@@ -591,7 +589,7 @@ public sealed partial class MainWindow
         }));
         form.Children.Add(fileActions);
 
-        var updated = await ShowFormAsync(L("TunExclusions"), form, feedback, L("SaveExclusions"), ReadEditors);
+        var updated = await ShowFormAsync(L("TunExclusions"), form, feedback, L("SaveExclusions"), ReadEditors, wide: true);
         if (updated is not null)
         {
             profiles.DirectRules = updated.ToList();
@@ -671,115 +669,13 @@ public sealed partial class MainWindow
 
     private sealed record FragmentationDraft(SingBoxTlsFragmentOptions? Options);
 
-    private static Expander CreateApplicationCatalog(TextBox processes, InfoBar feedback)
-    {
-        var search = new TextBox();
-        AutomationProperties.SetName(search, L("SearchApplications"));
-        var picker = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch, IsEnabled = false };
-        AutomationProperties.SetName(picker, L("Applications"));
-        var status = new TextBlock { TextWrapping = TextWrapping.Wrap };
-        var refresh = new Button { Content = L("RefreshList") };
-        var add = CreateDialogAction(L("AddSelected"), feedback, () =>
-        {
-            if (picker.SelectedItem is InstalledApplication selected)
-            {
-                AppendProcessNames(processes, [selected.ProcessName]);
-            }
-
-            return Task.CompletedTask;
-        });
-        add.IsEnabled = false;
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { add, refresh } };
-        var content = new StackPanel { Spacing = 8, Children = { search, picker, status, actions } };
-        var expander = new Expander
-        {
-            Header = new TextBlock { Text = L("SearchApplications"), TextWrapping = TextWrapping.Wrap },
-            Content = content,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch
-        };
-
-        IReadOnlyList<InstalledApplication>? applications = null;
-
-        void UpdatePicker()
-        {
-            if (applications is null || !refresh.IsEnabled)
-            {
-                return;
-            }
-
-            var query = search.Text.Trim();
-            var selectedName = (picker.SelectedItem as InstalledApplication)?.ProcessName;
-            var matches = query.Length == 0
-                ? applications
-                : applications.Where(application =>
-                    application.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
-                    application.ProcessName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    application.ExecutablePath.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-
-            picker.ItemsSource = matches;
-            picker.IsEnabled = matches.Count > 0;
-            picker.SelectedItem = matches.FirstOrDefault(application => SameName(application.ProcessName, selectedName))
-                ?? matches.FirstOrDefault();
-            status.Text = matches.Count > 0
-                ? string.Format(L("ApplicationsFound"), matches.Count)
-                : L(applications.Count == 0 ? "NoApplications" : "NoMatchingApplications");
-        }
-
-        async Task ScanAsync()
-        {
-            if (!refresh.IsEnabled)
-            {
-                return;
-            }
-
-            refresh.IsEnabled = false;
-            status.Text = L("ScanningApplications");
-            try
-            {
-                applications = await Task.Run(InstalledApplicationCatalog.FindInstalledApplications);
-            }
-            catch (Exception exception)
-            {
-                status.Text = L("RefreshApplicationsFailed");
-                SetDialogError(feedback, exception);
-                return;
-            }
-            finally
-            {
-                refresh.IsEnabled = true;
-            }
-
-            UpdatePicker();
-        }
-
-        search.TextChanged += (_, _) => UpdatePicker();
-        picker.SelectionChanged += (_, _) => add.IsEnabled = picker.SelectedItem is not null;
-        refresh.Click += async (_, _) => await ScanAsync();
-        expander.Expanding += async (_, _) =>
-        {
-            if (applications is null)
-            {
-                await ScanAsync();
-            }
-        };
-        return expander;
-    }
-
-    private static void AppendProcessNames(TextBox processes, IEnumerable<string> names)
-    {
-        var additions = names.Select(name => new SingBoxDirectRule("process_name", name));
-        processes.Text = SingBoxConfigDirectRules.FormatProcessNames(
-            SingBoxConfigDirectRules.ParseProcessNames(processes.Text).Concat(additions));
-    }
-
     private async Task<T?> ShowFormAsync<T>(
-        string title, StackPanel form, InfoBar feedback, string primaryButtonText, Func<T> validate) where T : class
+        string title, StackPanel form, InfoBar feedback, string primaryButtonText, Func<T> validate, bool wide = false) where T : class
     {
         var scroll = new ScrollViewer
         {
             Content = form,
-            MaxHeight = 390,
+            MaxHeight = wide ? Math.Max(220, Root.ActualHeight - 190) : 390,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
@@ -794,6 +690,12 @@ public sealed partial class MainWindow
         };
         Grid.SetRow(scroll, 1);
         var dialog = CreateDialog(title, content, primaryButtonText);
+        if (wide)
+        {
+            dialog.Resources["ContentDialogMaxWidth"] = 820d;
+            content.Width = Math.Clamp(Root.ActualWidth - 108, 220, 750);
+            dialog.DefaultButton = ContentDialogButton.None;
+        }
         T? value = null;
         dialog.PrimaryButtonClick += (_, args) =>
         {

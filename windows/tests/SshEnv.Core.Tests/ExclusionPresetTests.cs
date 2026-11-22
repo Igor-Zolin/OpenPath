@@ -8,6 +8,13 @@ internal static class ExclusionPresetTests
         const string key = "vless://11111111-1111-1111-1111-111111111111@127.0.0.1:443?security=tls&type=tcp#preset-test";
         var source = SingBoxProfileImporter.ImportVlessUriPair(key, directory, 2080).TunConfigPath;
         var original = File.ReadAllText(source);
+        var russian = SingBoxConfigDirectRules.GetPresetEntries("ru");
+        Require(russian.Contains("*.ru") && russian.Any(entry => entry.Contains('/')), "RU preview lost domains or GeoIP ranges.");
+        var microsoft = SingBoxConfigDirectRules.GetPresetEntries("microsoft");
+        Require(microsoft.Any(entry => entry.EndsWith("microsoftonline.com")) && microsoft.Any(entry => entry.Contains('/')),
+            "Microsoft preview lost domains or IP ranges.");
+        var lan = SingBoxConfigDirectRules.GetPresetEntries("lan");
+        Require(lan.Contains("cidr:192.168.0.0/16") && lan.Contains("*.local"), "LAN preview lost addresses or domains.");
         for (var mask = 0; mask < 8; mask++)
         {
             bool Enabled(int bit) => (mask & (1 << bit)) != 0;

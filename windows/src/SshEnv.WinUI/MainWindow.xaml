@@ -55,7 +55,14 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <InfoBar x:Name="Notice" IsClosable="True" />
+                <StackPanel>
+                    <InfoBar x:Name="ElevationNotice" IsClosable="True">
+                        <InfoBar.ActionButton>
+                            <Button x:Name="ElevationRestartButton" />
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                    <InfoBar x:Name="Notice" IsClosable="True" />
+                </StackPanel>
 
                 <Grid x:Name="HomePage" Grid.Row="1" RowSpacing="12">
                     <Grid.RowDefinitions>

@@ -42,6 +42,30 @@ public static partial class SingBoxConfigDirectRules
         }
     }
 
+    public static IReadOnlyList<string> GetPresetEntries(string id)
+    {
+        if (!PresetIds.Contains(id)) throw new ArgumentException("Unknown exclusion preset.", nameof(id));
+        var route = new JsonObject();
+        var expanded = ExpandPresets(route, [new("preset", id)]);
+        var entries = expanded.Where(rule => !IsPresetRuleSet(rule)).Select(Format).ToList();
+        if (route["rule_set"] is JsonArray sets)
+        {
+            foreach (var set in sets.OfType<JsonObject>())
+            foreach (var rule in set["rules"]!.AsArray().OfType<JsonObject>())
+            foreach (var (type, values) in rule)
+            foreach (var value in GetStringValues(values))
+            {
+                entries.Add(type switch
+                {
+                    "domain_suffix" => $"*.{value}",
+                    "domain_regex" => $"regex:{value}",
+                    _ => value
+                });
+            }
+        }
+        return entries.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
     private static bool IsPresetRuleSet(SingBoxDirectRule rule) => rule.Type is "domain_rule_set" or "ip_rule_set";
 
     private static IReadOnlyList<SingBoxDirectRule> ExpandPresets(JsonObject route, IReadOnlyList<SingBoxDirectRule> rules)
