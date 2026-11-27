@@ -157,7 +157,10 @@ public sealed partial class MainWindow : Window
         ElevationRestartButton.Click += async (_, _) => await RunActionAsync(RestartAsAdminAsync);
         RestartAsAdminButton.Click += async (_, _) => await RunActionAsync(RestartAsAdminAsync);
 
+        RequireAdminSwitch.IsOn = Program.RequireAdministrator;
+        RequireAdminSwitch.Toggled += (_, _) => Program.RequireAdministrator = RequireAdminSwitch.IsOn;
         CheckUpdatesButton.Click += async (_, _) => await CheckForUpdatesAsync();
+        DownloadUpdateLink.Click += async (_, _) => await OfferUpdateAsync();
         ApplyTheme();
         ApplyLanguage();
         Refresh();
@@ -175,6 +178,7 @@ public sealed partial class MainWindow : Window
     private void AttachWindowScaleHandler(object sender, RoutedEventArgs args)
     {
         Root.Loaded -= AttachWindowScaleHandler;
+        _ = CheckForUpdatesAsync();
         if (Root.XamlRoot is { } xamlRoot)
         {
             xamlRoot.Changed += (_, _) => UpdateMinimumWindowSize();
@@ -764,6 +768,7 @@ public sealed partial class MainWindow : Window
         }
 
         closing = true;
+        updateCancellation.Cancel();
         operationCancellation?.Cancel();
         pingCancellation?.Cancel();
         transitionCancellation?.Cancel();
@@ -794,13 +799,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo
-            {
-                FileName = Environment.ProcessPath ?? throw new InvalidOperationException(L("ExecutableUnavailable")),
-                Arguments = Program.RestartElevatedArgument,
-                UseShellExecute = true,
-                Verb = "runas"
-            });
+            Program.StartElevated();
             await ExitAsync();
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)

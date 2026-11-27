@@ -58,6 +58,12 @@ internal sealed class TrayIcon : IDisposable
         subclass = OnWindowMessage;
         callbackMessage = RegisterWindowMessage("SshEnv.WinUI.TrayIcon");
         taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
+        var appIcon = LoadIcon(GetModuleHandle(null), 32512);
+        if (appIcon != 0)
+        {
+            SendMessage(hwnd, 0x0080, 0, appIcon); // WM_SETICON, ICON_SMALL
+            SendMessage(hwnd, 0x0080, 1, appIcon);
+        }
 
         attached = callbackMessage != 0 && SetWindowSubclass(hwnd, subclass, IconId, 0);
         if (attached)
@@ -328,6 +334,9 @@ internal sealed class TrayIcon : IDisposable
 
     [DllImport("user32.dll", EntryPoint = "LoadIconW", ExactSpelling = true)]
     private static extern nint LoadIcon(nint module, nint icon);
+
+    [DllImport("kernel32.dll", EntryPoint = "GetModuleHandleW", CharSet = CharSet.Unicode)]
+    private static extern nint GetModuleHandle(string? name);
 
     [DllImport("user32.dll", EntryPoint = "SendMessageW", ExactSpelling = true)]
     private static extern nint SendMessage(nint hwnd, uint message, nuint wParam, nint lParam);

@@ -56,9 +56,13 @@ Choose x64 for Intel and AMD PCs or ARM64 for Windows on Arm. Both formats inclu
 | Format | x64 | ARM64 | Updating |
 | --- | --- | --- | --- |
 | Portable | `OpenPath-win-x64.exe` | `OpenPath-win-arm64.exe` | Exit OpenPath from the tray and replace the EXE. |
-| Installer | `OpenPath-win-x64-Setup.exe` | `OpenPath-win-arm64-Setup.exe` | Exit OpenPath and run the new installer over the existing installation. |
+| Installer | `OpenPath-win-x64-Setup.exe` | `OpenPath-win-arm64-Setup.exe` | Accept the update in OpenPath to install it and restart. |
 
-In **Settings → Application**, select **Check for updates**. If a newer stable release is available, the download link opens the matching asset in your browser. You choose when to install it. Each release includes `SHA256SUMS.txt` with the hashes of the four downloads.
+Setup installs tun2socks, Wintun and sing-box from the bundled archives. If SSH is missing, Windows requests elevation to enable OpenSSH Client. Windows may need network access for that optional feature.
+
+OpenPath checks for stable releases at startup and from **Settings → Application → Check for updates**. When you accept an installed update, OpenPath downloads the installer for your architecture, verifies its SHA-256 digest, closes active connections and restarts after setup. Portable copies open the matching EXE download in your browser. To upgrade an existing 1.6.0 installation to the first version with this feature, run the new setup once.
+
+Enable **Always start as administrator** in **Settings → Application** to request Windows elevation on subsequent launches. Cancelling the UAC prompt stops that launch.
 
 OpenPath reads existing profiles, saved passwords and configurations from `%LOCALAPPDATA%\SshEnv`. The installer recognizes previous SshEnv WinUI installations. On first use, WinUI can also import legacy Windows Avalonia profiles.
 
@@ -127,6 +131,8 @@ In the Windows app, `Settings` → `Remove dependencies` removes these
 managed files after confirmation. Disconnect any active tunnel first.
 OpenSSH, manually installed copies, and connection profiles are preserved.
 Use `Install dependencies` to restore the managed files.
+
+Uninstalling the Windows application also removes the three managed binaries and their license files. Portable and CLI copies for the same user share this directory and can reinstall the tools if needed. Setup records whether it enabled the system-wide OpenSSH Client feature. Only in that case does uninstall request elevation to remove it. Profiles and unrelated files are preserved.
 
 Builds launched directly from source download the same pinned, verified archives.
 Each download has a 90-second deadline covering both headers and the response

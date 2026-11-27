@@ -2,12 +2,32 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using System.Security.Principal;
 using WinRT;
+using System.ComponentModel;
+using System.Diagnostics;
+using Microsoft.Win32;
+using SshEnv.Core;
 
 namespace SshEnv.WinUI;
 
 internal static class Program
 {
     internal const string RestartElevatedArgument = "--restart-elevated";
+    private const string PreferencesKey = @"HKEY_CURRENT_USER\Software\OpenPath";
+    internal static bool RequireAdministrator
+    {
+        get => Registry.GetValue(PreferencesKey, nameof(RequireAdministrator), 0) is 1;
+        set => Registry.SetValue(PreferencesKey, nameof(RequireAdministrator), value ? 1 : 0);
+    }
+
+    internal static void StartElevated()
+    {
+        using var process = Process.Start(new ProcessStartInfo(Environment.ProcessPath!)
+        {
+            Arguments = RestartElevatedArgument,
+            UseShellExecute = true,
+            Verb = "runas"
+        });
+    }
 
     [STAThread]
     public static int Main(string[] args)
@@ -21,6 +41,28 @@ internal static class Program
             }
 
             Console.Write(password);
+            return 0;
+        }
+
+        if (args is ["--setup-dependencies"])
+        {
+            try
+            {
+                var dependencies = new DependencyInstaller();
+                dependencies.InstallAllAsync().GetAwaiter().GetResult();
+                return dependencies.Check().HasSsh ? 0 : 2;
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine(exception);
+                return 1;
+            }
+        }
+
+        if (RequireAdministrator && !TunnelSession.IsWindowsAdministrator())
+        {
+            try { StartElevated(); }
+            catch (Win32Exception exception) when (exception.NativeErrorCode == 1223) { }
             return 0;
         }
 

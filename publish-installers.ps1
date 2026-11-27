@@ -4,7 +4,7 @@ param(
     [string]$RuntimeIdentifier = 'win-x64',
     [string]$InnoCompiler,
     [ValidatePattern('^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
-    [string]$Version = '1.6.0',
+    [string]$Version = '1.7.0',
     [switch]$UseExistingPayload
 )
 

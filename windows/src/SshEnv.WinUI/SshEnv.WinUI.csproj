@@ -2,7 +2,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <Product>OpenPath</Product>
-    <Version>1.6.0</Version>
+    <ApplicationIcon>OpenPath.ico</ApplicationIcon>
+    <Version>1.7.0</Version>
     <AssemblyTitle>OpenPath</AssemblyTitle>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>

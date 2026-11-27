@@ -119,6 +119,11 @@ jobs:
           $target = Join-Path $env:RUNNER_TEMP 'OpenPath smoke'
           $setup = Start-Process ".\dist\OpenPath-$env:RID-Setup.exe" -ArgumentList "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /DIR=`"$target`"" -WindowStyle Hidden -Wait -PassThru
           if ($setup.ExitCode) { throw "Installer exited with code $($setup.ExitCode)." }
+          foreach ($tool in 'tun2socks.exe', 'wintun.dll', 'sing-box.exe') {
+            if (!(Test-Path -LiteralPath "$env:LOCALAPPDATA\SshEnv\tools\$tool" -PathType Leaf)) {
+              throw "Setup did not install $tool."
+            }
+          }
           $name = "OpenPath-$env:RID.exe"
           $installed = Join-Path $target $name
           if ((Get-FileHash $installed).Hash -ne (Get-FileHash ".\dist\$name").Hash) {
@@ -128,6 +133,17 @@ jobs:
           $env:SSH_ENV_PASSWORD = 'openpath-smoke'
           $answer = & $installed | Out-String
           if ($LASTEXITCODE -ne 0 -or $answer.Trim() -ne 'openpath-smoke') { throw 'Installed executable failed to start.' }
+
+          $toolsDir = Join-Path $env:LOCALAPPDATA 'SshEnv\tools'
+          $keep = Join-Path $toolsDir 'user-file.txt'
+          Set-Content -LiteralPath $keep -Value 'keep'
+          $uninstaller = Join-Path $target 'unins000.exe'
+          $removed = Start-Process $uninstaller -ArgumentList '/VERYSILENT /NORESTART /SUPPRESSMSGBOXES' -WindowStyle Hidden -PassThru -Wait
+          if ($removed.ExitCode) { throw "Uninstall exited with code $($removed.ExitCode)." }
+          foreach ($file in 'tun2socks.exe', 'wintun.dll', 'sing-box.exe', '.dependencies.lock', 'licenses') {
+            if (Test-Path -LiteralPath (Join-Path $toolsDir $file)) { throw "Uninstall left $file behind." }
+          }
+          if (!(Test-Path -LiteralPath $keep)) { throw 'Uninstall removed a user file.' }
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

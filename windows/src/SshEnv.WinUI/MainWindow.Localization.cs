@@ -12,7 +12,12 @@ public sealed partial class MainWindow
             ["NoPublicRelease"] = ("No public release is available yet.", "Публичный выпуск пока недоступен."),
             ["UpToDate"] = ("You have the latest version.", "У вас актуальная версия."),
             ["UpdateAvailable"] = ("OpenPath {0} is available.", "Доступна версия OpenPath {0}."),
-            ["DownloadSetup"] = ("Download installer", "Скачать установщик"),
+            ["RequireAdmin"] = ("Always start as administrator", "Всегда запускать от имени администратора"),
+            ["DownloadSetup"] = ("Install update", "Установить обновление"),
+            ["ConfirmInstall"] = ("OpenPath will download the installer, disconnect any active tunnel and restart.", "OpenPath скачает установщик, отключит активный туннель и перезапустится."),
+            ["ConfirmPortable"] = ("Download the new portable executable in your browser?", "Скачать новый портативный EXE в браузере?"),
+            ["DownloadingUpdate"] = ("Downloading and verifying the installer…", "Загрузка и проверка установщика…"),
+            ["InstallFailed"] = ("Could not install the update. Try again.", "Не удалось установить обновление. Попробуйте ещё раз."),
             ["DownloadPortable"] = ("Download portable EXE", "Скачать портативный EXE"),
             ["UpdateCheckFailed"] = ("Could not check for updates. Try again later.", "Не удалось проверить обновления. Попробуйте позже."),
             ["Connection"] = ("Connection", "Подключение"),
@@ -132,8 +137,8 @@ public sealed partial class MainWindow
         BehaviorLabel.Text = L("ApplicationSection");
         AppVersionLabel.Text = $"OpenPath {CurrentVersion}";
         CheckUpdatesButton.Content = L("CheckUpdates");
-        UpdateStatus.Text = string.Empty;
-        DownloadUpdateLink.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        RequireAdminSwitch.Header = L("RequireAdmin");
+        if (availableRelease != null) DisplayAvailableRelease();
         CloseBehaviorLabel.Text = L("CloseBehavior");
         AskCloseItem.Content = L("AskEveryTime");
         TrayCloseItem.Content = L("MinimizeToTray");

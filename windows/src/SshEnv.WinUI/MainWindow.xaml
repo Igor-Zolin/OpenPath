@@ -311,9 +311,10 @@
                             <Border Padding="14,10" Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="8">
                                     <TextBlock x:Name="AppVersionLabel" />
+                                    <ToggleSwitch x:Name="RequireAdminSwitch" />
                                     <Button x:Name="CheckUpdatesButton" Content="Check for updates" />
                                     <TextBlock x:Name="UpdateStatus" TextWrapping="Wrap" />
-                                    <HyperlinkButton x:Name="DownloadUpdateLink" Visibility="Collapsed" />
+                                    <Button x:Name="DownloadUpdateLink" Visibility="Collapsed" />
                                 </StackPanel>
                             </Border>
                             <Border Style="{StaticResource CardStyle}">
