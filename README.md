@@ -323,3 +323,7 @@ Notes:
 - `linux/` contains the independent [Linux Avalonia app](linux/README.md).
 - `shared/` contains the sing-box profile importer used by both platforms.
 - `configs/` contains example sing-box configurations.
+
+## License
+
+Copyright (c) 2026 Igor Zolin. The original OpenPath code is licensed under the [GNU General Public License, version 3 only](LICENSE) (`GPL-3.0-only`). Third-party components and datasets are covered by their respective licenses.
